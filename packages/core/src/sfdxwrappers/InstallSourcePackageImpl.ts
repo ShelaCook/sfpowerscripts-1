@@ -455,64 +455,67 @@ export default class InstallSourcePackageImpl {
     mdapi_options["wait_time"] = wait_time;
     mdapi_options["checkonly"] = false;
 
-    if (skipTest) {
-      let result;
-      try {
-        result = await OrgDetails.getOrgDetails(target_org);
-      } catch (err) {
-        SFPLogger.log(
-          ` -------------------------WARNING! SKIPPING TESTS AS ORG TYPE CANNOT BE DETERMINED! ------------------------------------${EOL}` +
-            `Tests are mandatory for deployments to production and cannot be skipped. This deployment might fail as org${EOL}` +
-            `type cannot be determined` +
-            `-------------------------------------------------------------------------------------------------------------${EOL}`,
-            null,
-            null,
-            LoggerLevel.DEBUG
-        );
+    if (this.packageMetadata.isApexFound) {
+      if (skipTest) {
+        let result;
+        try {
+          result = await OrgDetails.getOrgDetails(target_org);
+        } catch (err) {
+          SFPLogger.log(
+            ` -------------------------WARNING! SKIPPING TESTS AS ORG TYPE CANNOT BE DETERMINED! ------------------------------------${EOL}` +
+              `Tests are mandatory for deployments to production and cannot be skipped. This deployment might fail as org${EOL}` +
+              `type cannot be determined` +
+              `-------------------------------------------------------------------------------------------------------------${EOL}`,
+              null,
+              null,
+              LoggerLevel.DEBUG
+          );
 
-        mdapi_options["testlevel"] = "NoTestRun";
-        return mdapi_options;
-      }
+          mdapi_options["testlevel"] = "NoTestRun";
+          return mdapi_options;
+        }
 
-      if (result && result["IsSandbox"]) {
-        SFPLogger.log(
-          ` --------------------------------------WARNING! SKIPPING TESTS-------------------------------------------------${EOL}` +
-            `Skipping tests for deployment to sandbox. Be cautious that deployments to prod will require tests and >75% code coverage ${EOL}` +
-            `-------------------------------------------------------------------------------------------------------------`,
-            null,
-            null,
-            LoggerLevel.DEBUG
-        );
-        mdapi_options["testlevel"] = "NoTestRun";
+        if (result && result["IsSandbox"]) {
+          SFPLogger.log(
+            ` --------------------------------------WARNING! SKIPPING TESTS-------------------------------------------------${EOL}` +
+              `Skipping tests for deployment to sandbox. Be cautious that deployments to prod will require tests and >75% code coverage ${EOL}` +
+              `-------------------------------------------------------------------------------------------------------------`,
+              null,
+              null,
+              LoggerLevel.DEBUG
+          );
+          mdapi_options["testlevel"] = "NoTestRun";
+        } else {
+          SFPLogger.log(
+            ` -------------------------WARNING! TESTS ARE MANDATORY FOR PROD DEPLOYMENTS------------------------------------${EOL}` +
+              `Tests are mandatory for deployments to production and cannot be skipped. Running all local tests! ${EOL}` +
+              `-------------------------------------------------------------------------------------------------------------`,
+              null,
+              null,
+              LoggerLevel.DEBUG
+          );
+          mdapi_options["testlevel"] = "RunLocalTests";
+        }
       } else {
-        SFPLogger.log(
-          ` -------------------------WARNING! TESTS ARE MANDATORY FOR PROD DEPLOYMENTS------------------------------------${EOL}` +
-            `Tests are mandatory for deployments to production and cannot be skipped. Running all local tests! ${EOL}` +
-            `-------------------------------------------------------------------------------------------------------------`,
-            null,
-            null,
-            LoggerLevel.DEBUG
-        );
-        mdapi_options["testlevel"] = "RunLocalTests";
-      }
-    } else if (this.packageMetadata.isApexFound) {
-      if (this.packageMetadata.isTriggerAllTests) {
-        mdapi_options["testlevel"] = "RunLocalTests";
-      } else if (
-        this.packageMetadata.apexTestClassses?.length > 0 &&
-        optimizeDeployment
-      ) {
-        mdapi_options["testlevel"] = "RunSpecifiedTests";
-        mdapi_options["specified_tests"] = this.getAStringOfSpecificTestClasses(
-          this.packageMetadata.apexTestClassses
-        );
-      } else {
-        mdapi_options["testlevel"] = "RunLocalTests";
+        if (this.packageMetadata.isTriggerAllTests) {
+          mdapi_options["testlevel"] = "RunLocalTests";
+        } else if (
+          this.packageMetadata.apexTestClassses?.length > 0 &&
+          optimizeDeployment
+        ) {
+          mdapi_options["testlevel"] = "RunSpecifiedTests";
+          mdapi_options["specified_tests"] = this.getAStringOfSpecificTestClasses(
+            this.packageMetadata.apexTestClassses
+          );
+        } else {
+          mdapi_options["testlevel"] = "RunLocalTests";
+        }
       }
     } else {
       mdapi_options["testlevel"] = "RunSpecifiedTests";
       mdapi_options["specified_tests"] = "skip";
     }
+
     return mdapi_options;
   }
 
